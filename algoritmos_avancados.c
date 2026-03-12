@@ -2,70 +2,90 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Estrutura do nó (Sala)
+// Estrutura para as Pistas
+typedef struct Pista {
+    char texto[50];
+    struct Pista *esq, *dir;
+} Pista;
+
+// Estrutura para as Salas (Mapa)
 typedef struct Sala {
     char nome[50];
-    struct Sala *esquerda;
-    struct Sala *direita;
+    char pistaLocal[50]; // Pista escondida na sala (se houver)
+    struct Sala *esquerda, *direita;
 } Sala;
 
-Sala* criarSala(char* nome) {
-    Sala* novaSala = (Sala*)malloc(sizeof(Sala));
-    if (novaSala) {
-        strcpy(novaSala->nome, nome);
-        novaSala->esquerda = NULL;
-        novaSala->direita = NULL;
+// pistas
+
+Pista* inserirPista(Pista* raiz, char* texto) {
+    if (raiz == NULL) {
+        Pista* novo = (Pista*)malloc(sizeof(Pista));
+        strcpy(novo->texto, texto);
+        novo->esq = novo->dir = NULL;
+        return novo;
     }
-    return novaSala;
+    if (strcmp(texto, raiz->texto) < 0)
+        raiz->esq = inserirPista(raiz->esq, texto);
+    else if (strcmp(texto, raiz->texto) > 0)
+        raiz->dir = inserirPista(raiz->dir, texto);
+    
+    return raiz;
 }
 
-// Lógica de exploração interativa
-void explorarMansao(Sala* atual) {
+void exibirPistasEmOrdem(Pista* raiz) {
+    if (raiz != NULL) {
+        exibirPistasEmOrdem(raiz->esq);
+        printf("- %s\n", raiz->texto);
+        exibirPistasEmOrdem(raiz->dir);
+    }
+}
+
+Sala* criarSala(char* nome, char* pista) {
+    Sala* nova = (Sala*)malloc(sizeof(Sala));
+    strcpy(nova->nome, nome);
+    strcpy(nova->pistaLocal, pista);
+    nova->esquerda = nova->direita = NULL;
+    return nova;
+}
+
+void explorar(Sala* atual, Pista** inventario) {
     char escolha;
-
     while (atual != NULL) {
-        printf("\nVoce esta na sala: %s\n", atual->nome)
+        printf("\n[SALA]: %s\n", atual->nome);
 
-        if (atual->esquerda == NULL && atual->direita == NULL) {
-            printf("Voce chegou ao fim deste caminho. Nao existe salar para ir.\n");
-            break;
+        // Se houver pista na sala
+        if (strcmp(atual->pistaLocal, "") != 0) {
+            printf("(!) Voce encontrou uma pista: '%s'\n", atual->pistaLocal);
+            *inventario = inserirPista(*inventario, atual->pistaLocal);
+            strcpy(atual->pistaLocal, ""); // Limpa a sala para não coletar repetido
         }
 
-        printf("Para onde deseja ir? (1: Esquerda, 2: Direita, 3: Sair): ");
+        printf("Menu: 1. Direita\n, 2. Esquerda\n, 3. Pistas\n, 4. Sair ");
         scanf(" %c", &escolha);
 
         if (escolha == '3') {
-            printf("Saindo da exploracao...\n");
-            break;
-        } else if (escolha == '1') {
-            if (atual->esquerda) atual = atual->esquerda;
-            else printf("Caminho bloqueado a esquerda!\n");
-        } else if (escolha == '2') {
-            if (atual->direita) atual = atual->direita;
-            else printf("Caminho bloqueado a direita!\n");
-        } else {
-            printf("Comando invalido!\n");
-        }
+            printf("\nCaderno de Pistas:\n");
+            if (*inventario == NULL) printf("(Vazio)\n");
+            else exibirPistasEmOrdem(*inventario);
+        } else if (escolha == '2' && atual->esquerda) atual = atual->esquerda;
+        else if (escolha == '1' && atual->direita) atual = atual->direita;
+        else if (escolha == '4') break;
+        else printf("Caminho sem saida ou comando invalido.\n");
     }
 }
 
 int main() {
-    // Montagem da árvore (Mapa da Mansão)
-    Sala* raiz = criarSala("Hall de Entrada");
-    
-    // Nível 1
-    raiz->esquerda = criarSala("Cozinha");
-    raiz->direita = criarSala("Biblioteca");
+    Pista* inventario = NULL;
 
-    // Nível 2 (Folhas)
-    raiz->esquerda->esquerda = criarSala("Despensa Escura");
-    raiz->esquerda->direita = criarSala("Area de Servico");
-    raiz->direita->esquerda = criarSala("Sala de Leitura");
-    raiz->direita->direita = criarSala("Passagem Secreta");
+    // mansão com pistas
+    Sala* hall = criarSala("Hall", "");
+    hall->esquerda = criarSala("Cozinha", "Faca de Prata");
+    hall->direita = criarSala("Biblioteca", "Diario Antigo");
+    hall->direita->esquerda = criarSala("Sala de Leitura", "Chave Dourada");
+    hall->direita->direita = criarSala("Sotão", "Anel de Sinete");
 
-    printf("BEM-VINDO A MANSAO BINARIA\n");
-    explorarMansao(raiz);
+    printf("NIVEL AVENTUREIRO: BUSCA PELAS PISTAS\n");
+    explorar(hall, &inventario);
 
-    printf("\nObrigado por jogar!\n");
     return 0;
 }
