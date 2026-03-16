@@ -27,9 +27,6 @@ typedef struct Sala {
     struct Sala *esquerda, *direita;
 } Sala;
 
-// --- SISTEMA DE RANDOMIZAÇÃO ---
-
-// Corrigido: Adicionadas vírgulas entre as strings
 char* listaPistas[] = {
     "Faca de Prata", 
     "Diario Antigo", 
